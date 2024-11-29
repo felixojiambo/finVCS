@@ -9,6 +9,8 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardOpenOption;
+import java.util.HashMap;
+import java.util.Map;
 
 public class FileUtils {
     public static boolean exists(String path) {
@@ -40,5 +42,16 @@ public class FileUtils {
 
     public static String getAbsolutePath(String path) {
         return new File(path).getAbsolutePath();
+    }
+    private static Map<String, String> commitCache = new HashMap<>();
+
+    public static String readCommit(String commitHash) throws IOException {
+        if (commitCache.containsKey(commitHash)) {
+            return commitCache.get(commitHash);
+        }
+        String commitPath = ".felixvcs/commits/" + commitHash;
+        String commitJson = readFile(commitPath);
+        commitCache.put(commitHash, commitJson);
+        return commitJson;
     }
 }
