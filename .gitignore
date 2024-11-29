@@ -12,6 +12,10 @@ target/
 *.iml
 *.ipr
 
+/# Ignore IDE-specific files
+/.idea/
+/*.iml
+/.vscode/
 ### Eclipse ###
 .apt_generated
 .classpath
@@ -36,3 +40,9 @@ build/
 
 ### Mac OS ###
 .DS_Store
+# Ignore temporary files
+*.tmp
+*.log
+
+# Ignore FelixVersionControl's internal files
+/.felixvcs/
