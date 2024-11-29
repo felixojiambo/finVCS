@@ -2,6 +2,8 @@ package com.pesapal.felixvcs;
 import com.pesapal.felixvcs.commands.InitCommand;
 import com.pesapal.felixvcs.commands.AddCommand;
 import com.pesapal.felixvcs.commands.CommitCommand;
+import com.pesapal.felixvcs.commands.LogCommand;
+
 import java.util.Arrays;
 
 public class MainApplication {
@@ -48,7 +50,14 @@ public class MainApplication {
                     System.out.println("Error committing changes: " + e.getMessage());
                 }
                 break;
-
+            case "log":
+                LogCommand log = new LogCommand();
+                try {
+                    log.execute();
+                } catch (Exception e) {
+                    System.out.println("Error displaying log: " + e.getMessage());
+                }
+                break;
             default:
                 System.out.println("Unknown command: " + command);
         }
