@@ -76,6 +76,19 @@ public class MainApplication {
                     System.out.println("Error merging branches: " + e.getMessage());
                 }
                 break;
+            case "diff":
+                if (args.length < 3) {
+                    System.out.println("Please provide two commits to diff.");
+                    return;
+                }
+                String[] diffArgs = Arrays.copyOfRange(args, 1, args.length);
+                DiffCommand diff = new DiffCommand();
+                try {
+                    diff.execute(diffArgs);
+                } catch (Exception e) {
+                    System.out.println("Error executing diff: " + e.getMessage());
+                }
+                break;
             default:
                 System.out.println("Unknown command: " + command);
         }
