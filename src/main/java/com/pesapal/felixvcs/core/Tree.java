@@ -1,24 +1,37 @@
 package com.pesapal.felixvcs.core;
 
+import com.pesapal.felixvcs.utils.HashUtils;
+
 import java.util.Map;
 
 public class Tree {
     private Map<String, String> files; // filePath -> blobHash
 
+    // Default Constructor
     public Tree() {}
 
+    // Constructor with files
     public Tree(Map<String, String> files) {
         this.files = files;
     }
 
     // Getters and Setters
-
-    public Map<String, String> getFiles(){
+    public Map<String, String> getFiles() {
         return files;
     }
 
-    public void setFiles(Map<String, String> files){
+    public void setFiles(Map<String, String> files) {
         this.files = files;
+    }
+
+    /**
+     * Computes the SHA-1 hash of the tree's serialized JSON representation.
+     * This serves as a unique identifier for the tree.
+     *
+     * @return The SHA-1 hash of the tree.
+     */
+    public String getHash() {
+        return HashUtils.sha1(toJson().getBytes());
     }
 
     // Custom JSON Serialization
