@@ -2,18 +2,12 @@ package com.pesapal.felixvcs.commands;
 
 import com.pesapal.felixvcs.core.Commit;
 import com.pesapal.felixvcs.utils.FileUtils;
-import com.fasterxml.jackson.databind.ObjectMapper;
-
 import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Paths;
 
 public class LogCommand {
     private static final String VCS_DIR = ".felixvcs";
     private static final String COMMITS_DIR = VCS_DIR + "/commits";
     private static final String HEAD_FILE = VCS_DIR + "/HEAD";
-
-    private ObjectMapper objectMapper = new ObjectMapper();
 
     public void execute() throws IOException {
         // Check if repository is initialized
@@ -33,7 +27,7 @@ public class LogCommand {
         }
 
         // Traverse commits
-        while (!commitHash.isEmpty()) {
+        while (commitHash != null && !commitHash.isEmpty()) {
             String commitPath = COMMITS_DIR + "/" + commitHash;
             if (!FileUtils.exists(commitPath)) {
                 System.out.println("Commit " + commitHash + " not found.");
@@ -41,7 +35,7 @@ public class LogCommand {
             }
 
             String commitJson = FileUtils.readFile(commitPath);
-            Commit commit = objectMapper.readValue(commitJson, Commit.class);
+            Commit commit = Commit.fromJson(commitJson);
 
             // Display commit details
             System.out.println("Commit: " + commitHash);
@@ -50,7 +44,7 @@ public class LogCommand {
             System.out.println("\n    " + commit.getMessage() + "\n");
 
             // Move to parent commit
-            commitHash = commit.getParent() != null ? commit.getParent() : "";
+            commitHash = commit.getParent();
         }
     }
 }

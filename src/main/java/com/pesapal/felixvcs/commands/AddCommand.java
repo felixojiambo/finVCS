@@ -24,8 +24,7 @@ public class AddCommand {
         }
 
         // Check if file exists
-        Path path = Paths.get(filePath);
-        if (!Files.exists(path)) {
+        if (!Files.exists(Paths.get(filePath))) {
             System.out.println("File " + filePath + " does not exist.");
             return;
         }

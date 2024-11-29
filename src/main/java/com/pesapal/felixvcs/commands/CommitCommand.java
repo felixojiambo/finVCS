@@ -1,5 +1,5 @@
 package com.pesapal.felixvcs.commands;
-import com.fasterxml.jackson.databind.ObjectMapper;
+
 import com.pesapal.felixvcs.core.Commit;
 import com.pesapal.felixvcs.core.Tree;
 import com.pesapal.felixvcs.utils.FileUtils;
@@ -19,8 +19,6 @@ public class CommitCommand {
     private static final String TREES_DIR = VCS_DIR + "/trees";
     private static final String HEAD_FILE = VCS_DIR + "/HEAD";
     private static final String INDEX_FILE = VCS_DIR + "/index";
-
-    private ObjectMapper objectMapper = new ObjectMapper();
 
     public void execute(String message) throws IOException {
         // Check if repository is initialized
@@ -44,7 +42,7 @@ public class CommitCommand {
 
         // Build tree object
         Tree tree = new Tree(stagedFiles);
-        String treeJson = objectMapper.writeValueAsString(tree);
+        String treeJson = tree.toJson();
         String treeHash = HashUtils.sha1(treeJson.getBytes());
 
         // Save tree
@@ -72,7 +70,7 @@ public class CommitCommand {
         commit.setAuthor(author);
 
         // Serialize commit
-        String commitJson = objectMapper.writeValueAsString(commit);
+        String commitJson = commit.toJson();
         String commitHash = HashUtils.sha1(commitJson.getBytes());
 
         // Save commit
