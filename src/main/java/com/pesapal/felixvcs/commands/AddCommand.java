@@ -5,6 +5,7 @@ import com.pesapal.felixvcs.utils.HashUtils;
 
 import java.io.IOException;
 import java.nio.file.Files;
+import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.HashSet;
 import java.util.Set;
@@ -23,7 +24,8 @@ public class AddCommand {
         }
 
         // Check if file exists
-        if (!Files.exists(Paths.get(filePath))) {
+        Path path = Paths.get(filePath);
+        if (!Files.exists(path)) {
             System.out.println("File " + filePath + " does not exist.");
             return;
         }

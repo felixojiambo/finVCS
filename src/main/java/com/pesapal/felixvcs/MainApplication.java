@@ -37,19 +37,19 @@ public class MainApplication {
                     System.out.println("Error adding file: " + e.getMessage());
                 }
                 break;
-            case "commit":
-                if (args.length < 2) {
-                    System.out.println("Please provide a commit message.");
-                    return;
-                }
-                String message = String.join(" ", Arrays.copyOfRange(args, 1, args.length));
-                CommitCommand commit = new CommitCommand();
-                try {
-                    commit.execute(message);
-                } catch (Exception e) {
-                    System.out.println("Error committing changes: " + e.getMessage());
-                }
-                break;
+//            case "commit":
+//                if (args.length < 2) {
+//                    System.out.println("Please provide a commit message.");
+//                    return;
+//                }
+//                String message = String.join(" ", Arrays.copyOfRange(args, 1, args.length));
+//                CommitCommand commit = new CommitCommand();
+//                try {
+//                    commit.execute(message);
+//                } catch (Exception e) {
+//                    System.out.println("Error committing changes: " + e.getMessage());
+//                }
+//                break;
             // Future commands will be handled here
             default:
                 System.out.println("Unknown command: " + command);
