@@ -116,6 +116,14 @@ public class MainApplication {
                     System.out.println("Error removing file: " + e.getMessage());
                 }
                 break;
+            case "tag":
+                TagCommand tag = new TagCommand();
+                try {
+                    tag.execute(Arrays.copyOfRange(args, 1, args.length));
+                } catch (Exception e) {
+                    System.out.println("Error handling tag command: " + e.getMessage());
+                }
+                break;
             default:
                 System.out.println("Unknown command: " + command);
         }
