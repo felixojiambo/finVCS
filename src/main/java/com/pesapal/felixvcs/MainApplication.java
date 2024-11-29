@@ -103,6 +103,19 @@ public class MainApplication {
                     System.out.println("Error cloning repository: " + e.getMessage());
                 }
                 break;
+            case "remove":
+                if (args.length < 2) {
+                    System.out.println("Please provide a file to remove.");
+                    return;
+                }
+                String removeFilePath = args[1];
+                RemoveCommand remove = new RemoveCommand();
+                try {
+                    remove.execute(removeFilePath);
+                } catch (Exception e) {
+                    System.out.println("Error removing file: " + e.getMessage());
+                }
+                break;
             default:
                 System.out.println("Unknown command: " + command);
         }
