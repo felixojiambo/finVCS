@@ -124,6 +124,15 @@ public class MainApplication {
                     System.out.println("Error handling tag command: " + e.getMessage());
                 }
                 break;
+            case "stash":
+                StashCommand stash = new StashCommand();
+                try {
+                    String[] stashArgs = Arrays.copyOfRange(args, 1, args.length);
+                    stash.execute(stashArgs);
+                } catch (Exception e) {
+                    System.out.println("Error handling stash command: " + e.getMessage());
+                }
+                break;
             default:
                 System.out.println("Unknown command: " + command);
         }
