@@ -5,10 +5,9 @@ import com.pesapal.felixvcs.utils.HashUtils;
 
 import java.io.IOException;
 import java.nio.file.Files;
-import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.HashSet;
-import java.util.Set;
+import java.util.HashMap;
+import java.util.Map;
 
 public class AddCommand {
     private static final String VCS_DIR = ".felixvcs";
@@ -35,22 +34,14 @@ public class AddCommand {
             return;
         }
 
-        // Read file content
-        byte[] content = Files.readAllBytes(Paths.get(filePath));
-        String blobHash = HashUtils.sha1(content);
+        // Determine if the file is binary
+        boolean isBinary = isBinaryFile(filePath);
 
-        // Save blob
-        String blobPath = BLOBS_DIR + "/" + blobHash;
-        if (!FileUtils.exists(blobPath)) {
-            FileUtils.writeToFile(blobPath, new String(content));
+        if (isBinary) {
+            handleBinaryFile(filePath);
+        } else {
+            handleTextFile(filePath);
         }
-
-        // Update index
-        Set<String> indexEntries = loadIndex();
-        indexEntries.add(filePath + ":" + blobHash);
-        saveIndex(indexEntries);
-
-        System.out.println("Added " + filePath);
     }
 
     private boolean isIgnored(String filePath) throws IOException {
@@ -97,25 +88,78 @@ public class AddCommand {
         return regex.toString();
     }
 
-    private Set<String> loadIndex() throws IOException {
-        Set<String> indexEntries = new HashSet<>();
+    private void handleBinaryFile(String filePath) throws IOException {
+        System.out.println("Adding binary file " + filePath);
+        byte[] content = Files.readAllBytes(Paths.get(filePath));
+        String blobHash = HashUtils.sha1(content);
+
+        // Save binary blob
+        String blobPath = BLOBS_DIR + "/" + blobHash;
+        if (!FileUtils.exists(blobPath)) {
+            FileUtils.writeBinaryFile(blobPath, content);
+        }
+
+        // Update index
+        updateIndex(filePath, blobHash);
+    }
+
+    private void handleTextFile(String filePath) throws IOException {
+        byte[] content = Files.readAllBytes(Paths.get(filePath));
+        String blobHash = HashUtils.sha1(content);
+
+        // Save text blob
+        String blobPath = BLOBS_DIR + "/" + blobHash;
+        if (!FileUtils.exists(blobPath)) {
+            FileUtils.writeToFile(blobPath, new String(content));
+        }
+
+        // Update index
+        updateIndex(filePath, blobHash);
+
+        System.out.println("Added " + filePath);
+    }
+
+    private void updateIndex(String filePath, String blobHash) throws IOException {
+        Map<String, String> indexEntries = loadIndex();
+        indexEntries.put(filePath, blobHash);
+        saveIndex(indexEntries);
+    }
+
+    private Map<String, String> loadIndex() throws IOException {
+        Map<String, String> indexEntries = new HashMap<>();
         if (FileUtils.exists(INDEX_FILE)) {
             String content = FileUtils.readFile(INDEX_FILE);
             String[] entries = content.split("\n");
             for (String entry : entries) {
                 if (!entry.trim().isEmpty()) {
-                    indexEntries.add(entry.trim());
+                    String[] parts = entry.split(":", 2);
+                    if (parts.length == 2) {
+                        indexEntries.put(parts[0], parts[1]);
+                    }
                 }
             }
         }
         return indexEntries;
     }
 
-    private void saveIndex(Set<String> indexEntries) throws IOException {
+    private void saveIndex(Map<String, String> indexEntries) throws IOException {
         StringBuilder sb = new StringBuilder();
-        for (String entry : indexEntries) {
-            sb.append(entry).append("\n");
+        for (Map.Entry<String, String> entry : indexEntries.entrySet()) {
+            sb.append(entry.getKey()).append(":").append(entry.getValue()).append("\n");
         }
         FileUtils.writeToFile(INDEX_FILE, sb.toString());
+    }
+
+    private boolean isBinaryFile(String filePath) throws IOException {
+        byte[] bytes = Files.readAllBytes(Paths.get(filePath));
+        int binaryThreshold = 512; // Number of bytes to check
+
+        for (int i = 0; i < Math.min(bytes.length, binaryThreshold); i++) {
+            byte b = bytes[i];
+            if (b == 0) {
+                return true; // Null byte detected, likely binary
+            }
+        }
+        return false;
     }
 }

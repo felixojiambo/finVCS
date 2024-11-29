@@ -146,3 +146,11 @@ public class RebaseCommand {
         return Commit.fromJson(commitJson);
     }
 }
+/*
+* This is a simplified implementation of rebasing.
+* Implementing interactive rebasing,
+*  conflict resolution during rebasing,
+* and other advanced features would require more comprehensive logic.
+*
+*
+* */

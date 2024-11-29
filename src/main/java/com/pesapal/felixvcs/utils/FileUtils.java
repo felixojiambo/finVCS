@@ -5,12 +5,7 @@ import java.io.BufferedWriter;
 import java.io.File;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
-import java.nio.file.StandardOpenOption;
-import java.util.HashMap;
-import java.util.Map;
+import java.nio.file.*;
 
 public class FileUtils {
     public static boolean exists(String path) {
@@ -28,6 +23,11 @@ public class FileUtils {
         }
     }
 
+    public static void writeBinaryFile(String path, byte[] content) throws IOException {
+        Path filePath = Paths.get(path);
+        Files.write(filePath, content, StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING);
+    }
+
     public static String readFile(String path) throws IOException {
         Path filePath = Paths.get(path);
         StringBuilder sb = new StringBuilder();
@@ -43,15 +43,5 @@ public class FileUtils {
     public static String getAbsolutePath(String path) {
         return new File(path).getAbsolutePath();
     }
-    private static Map<String, String> commitCache = new HashMap<>();
-
-    public static String readCommit(String commitHash) throws IOException {
-        if (commitCache.containsKey(commitHash)) {
-            return commitCache.get(commitHash);
-        }
-        String commitPath = ".felixvcs/commits/" + commitHash;
-        String commitJson = readFile(commitPath);
-        commitCache.put(commitHash, commitJson);
-        return commitJson;
-    }
 }
+

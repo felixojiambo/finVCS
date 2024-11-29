@@ -3,7 +3,7 @@ package com.pesapal.felixvcs.commands;
 import com.pesapal.felixvcs.core.Commit;
 import com.pesapal.felixvcs.core.Tree;
 import com.pesapal.felixvcs.utils.FileUtils;
-import com.pesapal.felixvcs.utils.HashUtils;
+
 import java.io.IOException;
 import java.util.*;
 
@@ -49,7 +49,8 @@ public class DiffCommand {
             } else if (!blob1.equals(blob2)) {
                 String content1 = FileUtils.readFile(TREES_DIR + "/" + blob1);
                 String content2 = FileUtils.readFile(TREES_DIR + "/" + blob2);
-                List<String> diffs = generateDiff(content1, content2);
+                boolean isBinary = isBinaryContent(content1) || isBinaryContent(content2);
+                List<String> diffs = generateDiff(content1, content2, isBinary);
                 System.out.println("Differences in " + file + ":");
                 for (String diff : diffs) {
                     System.out.println(diff);
@@ -69,8 +70,13 @@ public class DiffCommand {
         return Tree.fromJson(treeJson);
     }
 
-    private List<String> generateDiff(String content1, String content2) {
+    private List<String> generateDiff(String content1, String content2, boolean isBinary) {
         List<String> diffs = new ArrayList<>();
+        if (isBinary) {
+            diffs.add("Binary files differ.");
+            return diffs;
+        }
+
         String[] lines1 = content1.split("\n");
         String[] lines2 = content2.split("\n");
 
@@ -90,5 +96,10 @@ public class DiffCommand {
         }
 
         return diffs;
+    }
+
+    private boolean isBinaryContent(String content) {
+        // Simple check for binary content by searching for null characters
+        return content.contains("\0");
     }
 }

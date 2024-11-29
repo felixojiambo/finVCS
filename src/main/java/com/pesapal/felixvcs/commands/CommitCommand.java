@@ -4,18 +4,19 @@ import com.pesapal.felixvcs.core.Commit;
 import com.pesapal.felixvcs.core.Tree;
 import com.pesapal.felixvcs.utils.FileUtils;
 import com.pesapal.felixvcs.utils.HashUtils;
+
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.time.Instant;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
-import java.util.*;
+import java.util.HashMap;
+import java.util.Map;
 
 public class CommitCommand {
     private static final String VCS_DIR = ".felixvcs";
     private static final String COMMITS_DIR = VCS_DIR + "/commits";
-    private static final String BLOBS_DIR = VCS_DIR + "/blobs";
     private static final String TREES_DIR = VCS_DIR + "/trees";
     private static final String HEAD_FILE = VCS_DIR + "/HEAD";
     private static final String INDEX_FILE = VCS_DIR + "/index";
@@ -38,6 +39,15 @@ public class CommitCommand {
         if (stagedFiles.isEmpty()) {
             System.out.println("No changes added to commit.");
             return;
+        }
+
+        // Detect deletions
+        Map<String, String> previousTree = parentCommitHash.isEmpty() ? new HashMap<>() : loadTree(parentCommitHash).getFiles();
+        for (String file : previousTree.keySet()) {
+            if (!stagedFiles.containsKey(file)) {
+                // File has been deleted
+                stagedFiles.put(file, null); // Mark as deleted
+            }
         }
 
         // Build tree object
@@ -63,9 +73,9 @@ public class CommitCommand {
         commit.setTimestamp(timestamp);
 
         // Dynamic author retrieval
-        String author = System.getenv("USER_NAME");
+        String author = System.getProperty("user.name");
         if (author == null || author.isEmpty()) {
-            author = "Unknown Author"; // Or implement another dynamic retrieval method
+            author = "Unknown Author"; // Fallback author name
         }
         commit.setAuthor(author);
 
@@ -93,7 +103,7 @@ public class CommitCommand {
             String[] entries = content.split("\n");
             for (String entry : entries) {
                 if (!entry.trim().isEmpty()) {
-                    String[] parts = entry.split(":");
+                    String[] parts = entry.split(":", 2);
                     if (parts.length == 2) {
                         stagedFiles.put(parts[0], parts[1]);
                     }
@@ -101,5 +111,15 @@ public class CommitCommand {
             }
         }
         return stagedFiles;
+    }
+
+    private Tree loadTree(String commitHash) throws IOException {
+        String commitPath = COMMITS_DIR + "/" + commitHash;
+        String commitJson = FileUtils.readFile(commitPath);
+        Commit commit = Commit.fromJson(commitJson);
+        String treeHash = commit.getTree();
+        String treePath = TREES_DIR + "/" + treeHash;
+        String treeJson = FileUtils.readFile(treePath);
+        return Tree.fromJson(treeJson);
     }
 }
