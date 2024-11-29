@@ -89,6 +89,20 @@ public class MainApplication {
                     System.out.println("Error executing diff: " + e.getMessage());
                 }
                 break;
+            case "clone":
+                if (args.length < 3) {
+                    System.out.println("Usage: clone <source-repo-path> <destination-path>");
+                    return;
+                }
+                String sourcePath = args[1];
+                String destinationPath = args[2];
+                CloneCommand clone = new CloneCommand();
+                try {
+                    clone.execute(sourcePath, destinationPath);
+                } catch (Exception e) {
+                    System.out.println("Error cloning repository: " + e.getMessage());
+                }
+                break;
             default:
                 System.out.println("Unknown command: " + command);
         }
