@@ -133,6 +133,19 @@ public class MainApplication {
                     System.out.println("Error handling stash command: " + e.getMessage());
                 }
                 break;
+            case "rebase":
+                if (args.length < 2) {
+                    System.out.println("Usage: rebase <target-branch>");
+                    return;
+                }
+                String targetBranch = args[1];
+                RebaseCommand rebase = new RebaseCommand();
+                try {
+                    rebase.execute(Arrays.copyOfRange(args, 1, args.length));
+                } catch (Exception e) {
+                    System.out.println("Error handling rebase command: " + e.getMessage());
+                }
+                break;
             default:
                 System.out.println("Unknown command: " + command);
         }
