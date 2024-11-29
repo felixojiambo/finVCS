@@ -1,8 +1,5 @@
 package com.pesapal.felixvcs;
-import com.pesapal.felixvcs.commands.InitCommand;
-import com.pesapal.felixvcs.commands.AddCommand;
-import com.pesapal.felixvcs.commands.CommitCommand;
-import com.pesapal.felixvcs.commands.LogCommand;
+import com.pesapal.felixvcs.commands.*;
 
 import java.util.Arrays;
 
@@ -56,6 +53,14 @@ public class MainApplication {
                     log.execute();
                 } catch (Exception e) {
                     System.out.println("Error displaying log: " + e.getMessage());
+                }
+                break;
+            case "branch":
+                BranchCommand branch = new BranchCommand();
+                try {
+                    branch.execute(Arrays.copyOfRange(args, 1, args.length));
+                } catch (Exception e) {
+                    System.out.println("Error handling branch command: " + e.getMessage());
                 }
                 break;
             default:
