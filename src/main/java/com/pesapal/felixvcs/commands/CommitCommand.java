@@ -4,6 +4,7 @@ import com.pesapal.felixvcs.core.Commit;
 import com.pesapal.felixvcs.core.Tree;
 import com.pesapal.felixvcs.utils.FileUtils;
 import com.pesapal.felixvcs.utils.HashUtils;
+import com.pesapal.felixvcs.utils.ProgressListener;
 
 import java.io.IOException;
 import java.nio.file.Files;
@@ -50,8 +51,38 @@ public class CommitCommand {
             }
         }
 
-        // Build tree object
-        Tree tree = new Tree(stagedFiles);
+        // Count total files to process
+        long totalFiles = stagedFiles.size();
+        if (totalFiles == 0) totalFiles = 1; // Prevent division by zero
+
+        // Build tree object with progress
+        Tree tree = new Tree();
+        Map<String, String> filesInTree = new HashMap<>();
+        long processedFiles = 0;
+
+        // Implement ProgressListener
+        ProgressListener listener = (completed, total) -> {
+            int progress = (int) ((completed * 100) / total);
+            System.out.print("\rProcessing files: " + progress + "%");
+        };
+
+        for (Map.Entry<String, String> entry : stagedFiles.entrySet()) {
+            String filePath = entry.getKey();
+            String blobHash = entry.getValue();
+
+            if (blobHash != null) {
+                filesInTree.put(filePath, blobHash);
+            } else {
+                // Handle deletions by not adding to the tree
+                // Alternatively, you can mark deletions in the tree structure if needed
+            }
+
+            processedFiles++;
+            // Update progress
+            listener.update(processedFiles, totalFiles);
+        }
+
+        tree.setFiles(filesInTree);
         String treeJson = tree.toJson();
         String treeHash = HashUtils.sha1(treeJson.getBytes());
 
@@ -93,9 +124,16 @@ public class CommitCommand {
         // Clear index
         FileUtils.writeToFile(INDEX_FILE, "");
 
-        System.out.println("[" + currentBranch + " " + commitHash + "] " + message);
+        // Final commit message with progress
+        System.out.println("\n[" + currentBranch + " " + commitHash + "] " + message);
     }
 
+    /**
+     * Loads the staged files from the index.
+     *
+     * @return A map of file paths to their blob hashes.
+     * @throws IOException If an I/O error occurs during reading.
+     */
     private Map<String, String> loadIndex() throws IOException {
         Map<String, String> stagedFiles = new HashMap<>();
         if (FileUtils.exists(INDEX_FILE)) {
@@ -113,6 +151,13 @@ public class CommitCommand {
         return stagedFiles;
     }
 
+    /**
+     * Loads a tree object based on the commit hash.
+     *
+     * @param commitHash The commit hash.
+     * @return The Tree object associated with the commit.
+     * @throws IOException If an I/O error occurs during reading.
+     */
     private Tree loadTree(String commitHash) throws IOException {
         String commitPath = COMMITS_DIR + "/" + commitHash;
         String commitJson = FileUtils.readFile(commitPath);
