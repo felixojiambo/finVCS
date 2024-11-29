@@ -1,13 +1,15 @@
 package com.pesapal.felixvcs.commands;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.pesapal.felixvcs.core.Commit;
 import com.pesapal.felixvcs.core.Tree;
 import com.pesapal.felixvcs.utils.FileUtils;
 import com.pesapal.felixvcs.utils.HashUtils;
-import com.fasterxml.jackson.databind.ObjectMapper;
-
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
+import java.time.Instant;
+import java.time.ZoneId;
+import java.time.format.DateTimeFormatter;
 import java.util.*;
 
 public class CommitCommand {
@@ -56,8 +58,18 @@ public class CommitCommand {
         commit.setTree(treeHash);
         commit.setParent(parentCommitHash.isEmpty() ? null : parentCommitHash);
         commit.setMessage(message);
-        commit.setTimestamp(new Date().toString());
-        commit.setAuthor("Ojiambo Felix"); // You can make this dynamic
+
+        String timestamp = DateTimeFormatter.ISO_INSTANT
+                .withZone(ZoneId.systemDefault())
+                .format(Instant.now());
+        commit.setTimestamp(timestamp);
+
+        // Dynamic author retrieval
+        String author = System.getenv("USER_NAME");
+        if (author == null || author.isEmpty()) {
+            author = "Unknown Author"; // Or implement another dynamic retrieval method
+        }
+        commit.setAuthor(author);
 
         // Serialize commit
         String commitJson = objectMapper.writeValueAsString(commit);
