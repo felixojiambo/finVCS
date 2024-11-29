@@ -63,6 +63,19 @@ public class MainApplication {
                     System.out.println("Error handling branch command: " + e.getMessage());
                 }
                 break;
+            case "merge":
+                if (args.length < 2) {
+                    System.out.println("Please provide a source branch to merge.");
+                    return;
+                }
+                String sourceBranch = args[1];
+                MergeCommand merge = new MergeCommand();
+                try {
+                    merge.execute(sourceBranch);
+                } catch (Exception e) {
+                    System.out.println("Error merging branches: " + e.getMessage());
+                }
+                break;
             default:
                 System.out.println("Unknown command: " + command);
         }
