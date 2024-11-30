@@ -5,19 +5,35 @@ import com.pesapal.felixvcs.utils.HashUtils;
 import java.nio.charset.StandardCharsets;
 import java.util.Base64;
 
+/**
+ * Represents a Blob object in the version control system.
+ * A Blob is a basic unit of storage, encapsulating file content (binary or text).
+ */
 public class Blob {
-    private final String hash;
-    private final byte[] content;
-    private final boolean isBinary;
+    private final String hash;     // Unique SHA-1 hash of the Blob's content
+    private final byte[] content; // The content stored in the Blob
+    private final boolean isBinary; // Indicates if the Blob represents binary data
 
-    // Constructor for new Blob
+    /**
+     * Constructs a new Blob and computes its hash.
+     *
+     * @param content  The content of the Blob.
+     * @param isBinary True if the content is binary, false otherwise.
+     */
     public Blob(byte[] content, boolean isBinary) {
         this.content = content;
         this.isBinary = isBinary;
         this.hash = HashUtils.sha1(content);
     }
 
-    // Constructor for existing Blob (used during deserialization)
+    /**
+     * Constructs an existing Blob object with a predefined hash.
+     * Typically used for deserialization or loading from storage.
+     *
+     * @param hash     The SHA-1 hash of the Blob.
+     * @param content  The content of the Blob.
+     * @param isBinary True if the content is binary, false otherwise.
+     */
     public Blob(String hash, byte[] content, boolean isBinary) {
         this.hash = hash;
         this.content = content;
@@ -25,19 +41,42 @@ public class Blob {
     }
 
     // Getters
+
+    /**
+     * Returns the hash of the Blob.
+     *
+     * @return The SHA-1 hash as a String.
+     */
     public String getHash() {
         return hash;
     }
 
+    /**
+     * Returns the content of the Blob.
+     *
+     * @return A byte array representing the content.
+     */
     public byte[] getContent() {
         return content;
     }
 
+    /**
+     * Indicates whether the Blob represents binary data.
+     *
+     * @return True if the Blob is binary, false otherwise.
+     */
     public boolean isBinary() {
         return isBinary;
     }
 
-    // Custom JSON Serialization
+    // Custom JSON Serialization and Deserialization
+
+    /**
+     * Converts the Blob object to its JSON representation.
+     * For binary content, it uses Base64 encoding.
+     *
+     * @return A JSON string representing the Blob.
+     */
     public String toJson() {
         StringBuilder jsonBuilder = new StringBuilder("{");
         jsonBuilder.append("\"hash\":\"").append(escapeJson(hash)).append("\",");
@@ -55,7 +94,13 @@ public class Blob {
         return jsonBuilder.toString();
     }
 
-    // Custom JSON Deserialization
+    /**
+     * Creates a Blob object from its JSON representation.
+     * Decodes Base64 for binary content and parses text content directly.
+     *
+     * @param json The JSON string representing the Blob.
+     * @return A Blob object.
+     */
     public static Blob fromJson(String json) {
         String hash = extractJsonValue(json, "hash");
         String isBinaryStr = extractJsonValue(json, "isBinary");
@@ -75,6 +120,13 @@ public class Blob {
     }
 
     // Helper Methods
+
+    /**
+     * Escapes special characters in a string for safe inclusion in JSON.
+     *
+     * @param str The input string.
+     * @return The escaped string.
+     */
     private static String escapeJson(String str) {
         if (str == null) return "";
         return str.replace("\\", "\\\\")
@@ -87,6 +139,12 @@ public class Blob {
                 .replace("\t", "\\t");
     }
 
+    /**
+     * Unescapes special characters in a JSON string.
+     *
+     * @param str The escaped JSON string.
+     * @return The unescaped string.
+     */
     private static String unescapeJson(String str) {
         if (str == null) return null;
         return str.replace("\\\"", "\"")
@@ -99,6 +157,13 @@ public class Blob {
                 .replace("\\t", "\t");
     }
 
+    /**
+     * Extracts the value of a key from a JSON string.
+     *
+     * @param json The JSON string.
+     * @param key  The key whose value is to be extracted.
+     * @return The value associated with the key, or null if the key is not present.
+     */
     private static String extractJsonValue(String json, String key) {
         String pattern = "\"" + key + "\":";
         int start = json.indexOf(pattern);

@@ -10,7 +10,14 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 
+/**
+ * Utility class for common file operations.
+ * <p>
+ * This class provides static methods to perform file and directory operations such as creation, deletion, copying,
+ * reading, and writing. It also includes functionality for handling ignored files using a `.ignore` file.
+ */
 public class FileUtils {
+
     /**
      * Checks if the given path exists.
      *
@@ -154,30 +161,61 @@ public class FileUtils {
         }
 
         // Walk through the file tree and copy files/directories
-        Files.walk(source)
-                .forEach(src -> {
-                    Path relativePath = source.relativize(src);
-                    String relativePathStr = relativePath.toString();
+        Files.walk(source).forEach(src -> {
+            Path relativePath = source.relativize(src);
+            String relativePathStr = relativePath.toString();
 
-                    // Check if the path should be excluded
-                    for (String exclude : excludePaths) {
-                        if (relativePathStr.startsWith(exclude)) {
-                            return; // Skip this path
-                        }
-                    }
+            // Check if the path should be excluded
+            for (String exclude : excludePaths) {
+                if (relativePathStr.startsWith(exclude)) {
+                    return; // Skip this path
+                }
+            }
 
-                    Path dest = destination.resolve(relativePath);
-                    try {
-                        if (Files.isDirectory(src)) {
-                            if (!Files.exists(dest)) {
-                                Files.createDirectories(dest);
-                            }
-                        } else {
-                            Files.copy(src, dest, StandardCopyOption.REPLACE_EXISTING);
-                        }
-                    } catch (IOException e) {
-                        throw new RuntimeException("Error copying " + src + " to " + dest, e);
+            Path dest = destination.resolve(relativePath);
+            try {
+                if (Files.isDirectory(src)) {
+                    if (!Files.exists(dest)) {
+                        Files.createDirectories(dest);
                     }
-                });
+                } else {
+                    Files.copy(src, dest, StandardCopyOption.REPLACE_EXISTING);
+                }
+            } catch (IOException e) {
+                throw new RuntimeException("Error copying " + src + " to " + dest, e);
+            }
+        });
+    }
+
+    /**
+     * Reads the .ignore file and returns a list of ignored patterns.
+     *
+     * @param ignoreFilePath The path to the .ignore file.
+     * @return List of patterns to ignore.
+     * @throws IOException If an I/O error occurs.
+     */
+    public static List<String> readIgnoreFile(String ignoreFilePath) throws IOException {
+        Path path = Paths.get(ignoreFilePath);
+        if (Files.exists(path)) {
+            return Files.readAllLines(path, StandardCharsets.UTF_8);
+        }
+        return new ArrayList<>();
+    }
+
+    /**
+     * Checks if a file should be ignored based on .ignore patterns.
+     *
+     * @param filePath       The relative path of the file to check.
+     * @param ignorePatterns The list of patterns from the .ignore file.
+     * @return True if the file matches any ignore pattern, false otherwise.
+     */
+    public static boolean isIgnored(String filePath, List<String> ignorePatterns) {
+        for (String pattern : ignorePatterns) {
+            String regex = pattern.replace("*", ".*"); // Convert glob to regex
+            if (filePath.matches(regex)) {
+                return true;
+            }
+        }
+        return false;
     }
 }

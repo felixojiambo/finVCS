@@ -15,6 +15,10 @@ import java.time.format.DateTimeFormatter;
 import java.util.HashMap;
 import java.util.Map;
 
+/**
+ * Handles the commit operation in the FelixVersionControl repository.
+ * Commits changes from the staging area (index) and records them in the repository.
+ */
 public class CommitCommand {
     private static final String VCS_DIR = ".felixvcs";
     private static final String COMMITS_DIR = VCS_DIR + "/commits";
@@ -22,19 +26,25 @@ public class CommitCommand {
     private static final String HEAD_FILE = VCS_DIR + "/HEAD";
     private static final String INDEX_FILE = VCS_DIR + "/index";
 
+    /**
+     * Executes the commit operation.
+     *
+     * @param message The commit message describing the changes.
+     * @throws IOException If an I/O error occurs during the commit process.
+     */
     public void execute(String message) throws IOException {
-        // Check if repository is initialized
+        // Ensure the repository is initialized
         if (!FileUtils.exists(VCS_DIR)) {
             System.out.println("Not a FelixVersionControl repository. Use 'init' to initialize.");
             return;
         }
 
-        // Load current HEAD
+        // Load HEAD reference and parent commit
         String headRef = FileUtils.readFile(HEAD_FILE).trim();
         String currentBranch = headRef.replace("refs/heads/", "");
         String parentCommitHash = FileUtils.readFile(VCS_DIR + "/refs/heads/" + currentBranch).trim();
 
-        // Load staged files
+        // Load staged files from the index
         Map<String, String> stagedFiles = loadIndex();
 
         if (stagedFiles.isEmpty()) {
@@ -42,89 +52,36 @@ public class CommitCommand {
             return;
         }
 
-        // Detect deletions
+        // Detect deletions by comparing with the previous tree
         Map<String, String> previousTree = parentCommitHash.isEmpty() ? new HashMap<>() : loadTree(parentCommitHash).getFiles();
         for (String file : previousTree.keySet()) {
             if (!stagedFiles.containsKey(file)) {
-                // File has been deleted
                 stagedFiles.put(file, null); // Mark as deleted
             }
         }
 
-        // Count total files to process
-        long totalFiles = stagedFiles.size();
-        if (totalFiles == 0) totalFiles = 1; // Prevent division by zero
+        // Build the tree object and update progress
+        Tree tree = buildTree(stagedFiles);
 
-        // Build tree object with progress
-        Tree tree = new Tree();
-        Map<String, String> filesInTree = new HashMap<>();
-        long processedFiles = 0;
-
-        // Implement ProgressListener
-        ProgressListener listener = (completed, total) -> {
-            int progress = (int) ((completed * 100) / total);
-            System.out.print("\rProcessing files: " + progress + "%");
-        };
-
-        for (Map.Entry<String, String> entry : stagedFiles.entrySet()) {
-            String filePath = entry.getKey();
-            String blobHash = entry.getValue();
-
-            if (blobHash != null) {
-                filesInTree.put(filePath, blobHash);
-            } else {
-                // Handle deletions by not adding to the tree
-                // Alternatively, you can mark deletions in the tree structure if needed
-            }
-
-            processedFiles++;
-            // Update progress
-            listener.update(processedFiles, totalFiles);
-        }
-
-        tree.setFiles(filesInTree);
+        // Save the tree and generate its hash
         String treeJson = tree.toJson();
         String treeHash = HashUtils.sha1(treeJson.getBytes());
+        saveTree(treeHash, treeJson);
 
-        // Save tree
-        String treePath = TREES_DIR + "/" + treeHash;
-        if (!FileUtils.exists(treePath)) {
-            FileUtils.writeToFile(treePath, treeJson);
-        }
+        // Create the commit object
+        Commit commit = createCommit(treeHash, parentCommitHash, message);
 
-        // Create commit object
-        Commit commit = new Commit();
-        commit.setTree(treeHash);
-        commit.setParent(parentCommitHash.isEmpty() ? null : parentCommitHash);
-        commit.setMessage(message);
-
-        String timestamp = DateTimeFormatter.ISO_INSTANT
-                .withZone(ZoneId.systemDefault())
-                .format(Instant.now());
-        commit.setTimestamp(timestamp);
-
-        // Dynamic author retrieval
-        String author = System.getProperty("user.name");
-        if (author == null || author.isEmpty()) {
-            author = "Unknown Author"; // Fallback author name
-        }
-        commit.setAuthor(author);
-
-        // Serialize commit
+        // Serialize and save the commit
         String commitJson = commit.toJson();
         String commitHash = HashUtils.sha1(commitJson.getBytes());
+        saveCommit(commitHash, commitJson);
 
-        // Save commit
-        String commitPath = COMMITS_DIR + "/" + commitHash;
-        FileUtils.writeToFile(commitPath, commitJson);
-
-        // Update current branch
+        // Update the branch reference to the new commit
         FileUtils.writeToFile(VCS_DIR + "/refs/heads/" + currentBranch, commitHash);
 
-        // Clear index
+        // Clear the staging area (index)
         FileUtils.writeToFile(INDEX_FILE, "");
 
-        // Final commit message with progress
         System.out.println("\n[" + currentBranch + " " + commitHash + "] " + message);
     }
 
@@ -166,5 +123,89 @@ public class CommitCommand {
         String treePath = TREES_DIR + "/" + treeHash;
         String treeJson = FileUtils.readFile(treePath);
         return Tree.fromJson(treeJson);
+    }
+
+    /**
+     * Builds a tree object from staged files and displays progress.
+     *
+     * @param stagedFiles A map of file paths to their blob hashes.
+     * @return The constructed Tree object.
+     */
+    private Tree buildTree(Map<String, String> stagedFiles) {
+        Tree tree = new Tree();
+        Map<String, String> filesInTree = new HashMap<>();
+        long totalFiles = stagedFiles.size();
+        long processedFiles = 0;
+
+        ProgressListener listener = (completed, total) -> {
+            int progress = (int) ((completed * 100) / total);
+            System.out.print("\rProcessing files: " + progress + "%");
+        };
+
+        for (Map.Entry<String, String> entry : stagedFiles.entrySet()) {
+            String filePath = entry.getKey();
+            String blobHash = entry.getValue();
+
+            if (blobHash != null) {
+                filesInTree.put(filePath, blobHash);
+            }
+
+            processedFiles++;
+            listener.update(processedFiles, totalFiles);
+        }
+
+        tree.setFiles(filesInTree);
+        return tree;
+    }
+
+    /**
+     * Saves the tree to the repository.
+     *
+     * @param treeHash The hash of the tree.
+     * @param treeJson The JSON representation of the tree.
+     * @throws IOException If an I/O error occurs during saving.
+     */
+    private void saveTree(String treeHash, String treeJson) throws IOException {
+        String treePath = TREES_DIR + "/" + treeHash;
+        if (!FileUtils.exists(treePath)) {
+            FileUtils.writeToFile(treePath, treeJson);
+        }
+    }
+
+    /**
+     * Creates a commit object with the given parameters.
+     *
+     * @param treeHash          The hash of the tree.
+     * @param parentCommitHash  The hash of the parent commit (if any).
+     * @param message           The commit message.
+     * @return A new Commit object.
+     */
+    private Commit createCommit(String treeHash, String parentCommitHash, String message) {
+        Commit commit = new Commit();
+        commit.setTree(treeHash);
+        commit.setParent(parentCommitHash.isEmpty() ? null : parentCommitHash);
+        commit.setMessage(message);
+
+        String timestamp = DateTimeFormatter.ISO_INSTANT
+                .withZone(ZoneId.systemDefault())
+                .format(Instant.now());
+        commit.setTimestamp(timestamp);
+
+        String author = System.getProperty("user.name");
+        commit.setAuthor(author == null || author.isEmpty() ? "Unknown Author" : author);
+
+        return commit;
+    }
+
+    /**
+     * Saves a commit to the repository.
+     *
+     * @param commitHash The hash of the commit.
+     * @param commitJson The JSON representation of the commit.
+     * @throws IOException If an I/O error occurs during saving.
+     */
+    private void saveCommit(String commitHash, String commitJson) throws IOException {
+        String commitPath = COMMITS_DIR + "/" + commitHash;
+        FileUtils.writeToFile(commitPath, commitJson);
     }
 }

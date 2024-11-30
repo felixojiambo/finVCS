@@ -1,10 +1,17 @@
 package com.pesapal.felixvcs.commands;
 
 import com.pesapal.felixvcs.utils.FileUtils;
+
 import java.io.IOException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 
+/**
+ * Command to initialize a new FelixVersionControl repository.
+ * <p>
+ * This command sets up the necessary directory structure and configuration files
+ * for managing a repository.
+ */
 public class InitCommand {
     private static final String VCS_DIR = ".felixvcs";
     private static final String COMMITS_DIR = VCS_DIR + "/commits";
@@ -40,30 +47,71 @@ public class InitCommand {
      */
     public void execute() throws IOException {
         Path vcsPath = baseDir.resolve(VCS_DIR);
+
+        // Check if repository already exists
         if (FileUtils.exists(vcsPath.toString())) {
             System.out.println("Repository already initialized.");
             return;
         }
 
-        // Create directories
+        // Create directory structure for the repository
+        createRepositoryStructure(vcsPath);
+
+        // Initialize HEAD to point to the "master" branch
+        initializeHeadFile(vcsPath);
+
+        // Create master branch with no commits
+        initializeBranch(vcsPath);
+
+        // Initialize empty index and ignore files
+        initializeEmptyFiles(vcsPath);
+
+        // Print success message
+        System.out.println("Initialized empty FelixVersionControl repository in " + vcsPath.toAbsolutePath());
+    }
+
+    /**
+     * Creates the necessary directory structure for the repository.
+     *
+     * @param vcsPath The base path for the repository.
+     * @throws IOException If an I/O error occurs during directory creation.
+     */
+    private void createRepositoryStructure(Path vcsPath) throws IOException {
         FileUtils.createDirectory(vcsPath.toString());
         FileUtils.createDirectory(vcsPath.resolve("commits").toString());
         FileUtils.createDirectory(vcsPath.resolve("blobs").toString());
         FileUtils.createDirectory(vcsPath.resolve("trees").toString());
         FileUtils.createDirectory(vcsPath.resolve("refs/heads").toString());
+    }
 
-        // Initialize HEAD to point to master
+    /**
+     * Initializes the HEAD file to point to the "master" branch.
+     *
+     * @param vcsPath The base path for the repository.
+     * @throws IOException If an I/O error occurs while writing to the HEAD file.
+     */
+    private void initializeHeadFile(Path vcsPath) throws IOException {
         FileUtils.writeToFile(vcsPath.resolve("HEAD").toString(), "refs/heads/master");
+    }
 
-        // Initialize master branch with no commits
+    /**
+     * Creates an initial empty "master" branch.
+     *
+     * @param vcsPath The base path for the repository.
+     * @throws IOException If an I/O error occurs while creating the branch file.
+     */
+    private void initializeBranch(Path vcsPath) throws IOException {
         FileUtils.writeToFile(vcsPath.resolve("refs/heads/master").toString(), "");
+    }
 
-        // Initialize empty index
+    /**
+     * Initializes the index and ignore files as empty.
+     *
+     * @param vcsPath The base path for the repository.
+     * @throws IOException If an I/O error occurs while creating the files.
+     */
+    private void initializeEmptyFiles(Path vcsPath) throws IOException {
         FileUtils.writeToFile(vcsPath.resolve("index").toString(), "");
-
-        // Initialize empty ignore file
         FileUtils.writeToFile(vcsPath.resolve("ignore").toString(), "");
-
-        System.out.println("Initialized empty FelixVersionControl repository in " + vcsPath.toAbsolutePath());
     }
 }

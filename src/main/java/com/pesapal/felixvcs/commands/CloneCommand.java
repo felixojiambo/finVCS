@@ -8,6 +8,10 @@ import java.util.HashSet;
 import java.util.Set;
 import java.util.stream.Stream;
 
+/**
+ * Handles the cloning of a FelixVersionControl repository.
+ * Copies the repository data and the working directory to a new location.
+ */
 public class CloneCommand {
     private static final String VCS_DIR = ".felixvcs";
 

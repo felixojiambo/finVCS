@@ -9,11 +9,25 @@ import java.nio.file.Paths;
 import java.util.*;
 import java.util.stream.Collectors;
 
+/**
+ * Handles stashing functionality in the version control system.
+ * Stashing temporarily saves changes in the working directory and index
+ * for later application, allowing the user to work on a clean slate.
+ */
 public class StashCommand {
     private static final String VCS_DIR = ".felixvcs";
     private static final String STASH_DIR = VCS_DIR + "/stash";
     private static final String INDEX_FILE = VCS_DIR + "/index";
 
+    /**
+     * Executes the stash command based on the provided arguments.
+     *
+     * @param args Command-line arguments:
+     *             - No arguments: Creates a new stash.
+     *             - "pop": Applies the latest stash.
+     *             - "list": Lists all stashes.
+     * @throws IOException If an I/O error occurs during execution.
+     */
     public void execute(String[] args) throws IOException {
         if (!FileUtils.exists(VCS_DIR)) {
             System.out.println("Not a FelixVersionControl repository. Use 'init' to initialize.");
@@ -21,30 +35,24 @@ public class StashCommand {
         }
 
         if (args.length == 0) {
-            // Create a new stash
             createStash();
         } else if (args.length == 1) {
             switch (args[0]) {
-                case "pop":
-                    applyStash();
-                    break;
-                case "list":
-                    listStashes();
-                    break;
-                default:
-                    System.out.println("Unknown stash command: " + args[0]);
-                    break;
+                case "pop" -> applyStash();
+                case "list" -> listStashes();
+                default -> printUsage(args[0]);
             }
         } else {
-            System.out.println("Usage:");
-            System.out.println("  stash               # Create a new stash");
-            System.out.println("  stash pop           # Apply the latest stash");
-            System.out.println("  stash list          # List all stashes");
+            printUsage(null);
         }
     }
 
+    /**
+     * Creates a new stash by saving the current index state and clearing it.
+     *
+     * @throws IOException If an I/O error occurs during stash creation.
+     */
     private void createStash() throws IOException {
-        // Load current index
         Map<String, String> indexEntries = loadIndex();
 
         if (indexEntries.isEmpty()) {
@@ -52,22 +60,24 @@ public class StashCommand {
             return;
         }
 
-        String stashMessage = "Stash on " + new Date();
+        String stashMessage = "Stash created on " + new Date();
         String stashId = HashUtils.sha1((stashMessage + new Date()).getBytes());
 
-        // Serialize index
         String stashJson = mapToJson(indexEntries);
 
-        // Save stash
         FileUtils.createDirectory(STASH_DIR);
         FileUtils.writeToFile(STASH_DIR + "/" + stashId, stashJson);
 
-        // Clear the index
         FileUtils.writeToFile(INDEX_FILE, "");
 
         System.out.println("Saved working directory and index state as stash " + stashId);
     }
 
+    /**
+     * Applies the latest stash and removes it from the stash directory.
+     *
+     * @throws IOException If an I/O error occurs during stash application.
+     */
     private void applyStash() throws IOException {
         List<String> stashes = getStashes();
 
@@ -80,31 +90,37 @@ public class StashCommand {
         String stashContent = FileUtils.readFile(STASH_DIR + "/" + latestStash);
         Map<String, String> stashIndex = jsonToMap(stashContent);
 
-        // Merge stashIndex into current index
         Map<String, String> currentIndex = loadIndex();
         currentIndex.putAll(stashIndex);
         saveIndex(currentIndex);
 
-        // Remove the applied stash
         Files.deleteIfExists(Paths.get(STASH_DIR + "/" + latestStash));
 
         System.out.println("Applied stash " + latestStash);
     }
 
+    /**
+     * Lists all available stashes.
+     *
+     * @throws IOException If an I/O error occurs during stash listing.
+     */
     private void listStashes() throws IOException {
         List<String> stashes = getStashes();
 
         if (stashes.isEmpty()) {
             System.out.println("No stashes available.");
-            return;
-        }
-
-        System.out.println("Stashes:");
-        for (String stash : stashes) {
-            System.out.println("  " + stash);
+        } else {
+            System.out.println("Stashes:");
+            stashes.forEach(stash -> System.out.println("  " + stash));
         }
     }
 
+    /**
+     * Retrieves a sorted list of all stashes.
+     *
+     * @return A list of stash IDs.
+     * @throws IOException If an I/O error occurs.
+     */
     private List<String> getStashes() throws IOException {
         if (!FileUtils.exists(STASH_DIR)) {
             return Collections.emptyList();
@@ -116,6 +132,12 @@ public class StashCommand {
                 .collect(Collectors.toList());
     }
 
+    /**
+     * Loads the current index state into a map.
+     *
+     * @return A map of file paths to their hashes.
+     * @throws IOException If an I/O error occurs during index loading.
+     */
     private Map<String, String> loadIndex() throws IOException {
         Map<String, String> indexEntries = new HashMap<>();
         if (FileUtils.exists(INDEX_FILE)) {
@@ -133,6 +155,12 @@ public class StashCommand {
         return indexEntries;
     }
 
+    /**
+     * Saves the current index state from a map.
+     *
+     * @param indexEntries The map of file paths to their hashes.
+     * @throws IOException If an I/O error occurs during index saving.
+     */
     private void saveIndex(Map<String, String> indexEntries) throws IOException {
         StringBuilder sb = new StringBuilder();
         for (Map.Entry<String, String> entry : indexEntries.entrySet()) {
@@ -141,7 +169,12 @@ public class StashCommand {
         FileUtils.writeToFile(INDEX_FILE, sb.toString());
     }
 
-    // Custom JSON serialization for a map
+    /**
+     * Converts a map to a JSON string.
+     *
+     * @param map The map to serialize.
+     * @return A JSON representation of the map.
+     */
     private String mapToJson(Map<String, String> map) {
         StringBuilder jsonBuilder = new StringBuilder("{");
         for (Map.Entry<String, String> entry : map.entrySet()) {
@@ -149,13 +182,18 @@ public class StashCommand {
                     .append("\"").append(escapeJson(entry.getValue())).append("\",");
         }
         if (!map.isEmpty()) {
-            jsonBuilder.deleteCharAt(jsonBuilder.length() - 1); // Remove trailing comma
+            jsonBuilder.deleteCharAt(jsonBuilder.length() - 1);
         }
         jsonBuilder.append("}");
         return jsonBuilder.toString();
     }
 
-    // Custom JSON deserialization for a map
+    /**
+     * Converts a JSON string to a map.
+     *
+     * @param json The JSON string to deserialize.
+     * @return A map representation of the JSON.
+     */
     private Map<String, String> jsonToMap(String json) {
         Map<String, String> map = new HashMap<>();
         json = json.trim();
@@ -174,29 +212,19 @@ public class StashCommand {
         return map;
     }
 
-    // Helper method to escape JSON special characters
     private String escapeJson(String str) {
-        if (str == null) return "";
-        return str.replace("\\", "\\\\")
-                .replace("\"", "\\\"")
-                .replace("/", "\\/")
-                .replace("\b", "\\b")
-                .replace("\f", "\\f")
-                .replace("\n", "\\n")
-                .replace("\r", "\\r")
-                .replace("\t", "\\t");
+        return str.replace("\\", "\\\\").replace("\"", "\\\"");
     }
 
-    // Helper method to unescape JSON special characters
     private String unescapeJson(String str) {
-        if (str == null) return "";
-        return str.replace("\\\"", "\"")
-                .replace("\\\\", "\\")
-                .replace("\\/", "/")
-                .replace("\\b", "\b")
-                .replace("\\f", "\f")
-                .replace("\\n", "\n")
-                .replace("\\r", "\r")
-                .replace("\\t", "\t");
+        return str.replace("\\\"", "\"").replace("\\\\", "\\");
+    }
+
+    private void printUsage(String command) {
+        System.out.println("Unknown stash command: " + command);
+        System.out.println("Usage:");
+        System.out.println("  stash               # Create a new stash");
+        System.out.println("  stash pop           # Apply the latest stash");
+        System.out.println("  stash list          # List all stashes");
     }
 }

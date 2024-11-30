@@ -2,30 +2,55 @@ package com.pesapal.felixvcs.core;
 
 import com.pesapal.felixvcs.utils.HashUtils;
 
+import java.util.HashMap;
 import java.util.Map;
 
+/**
+ * Represents a tree object in the version control system.
+ * <p>
+ * A tree is a mapping of file paths to blob hashes, representing the state of the file system
+ * at a specific point in time. It is serialized and deserialized to and from JSON format.
+ */
 public class Tree {
-    private Map<String, String> files; // filePath -> blobHash
+    private Map<String, String> files; // Maps file paths to their corresponding blob hashes.
 
-    // Default Constructor
-    public Tree() {}
+    /**
+     * Default constructor.
+     */
+    public Tree() {
+        this.files = new HashMap<>();
+    }
 
-    // Constructor with files
+    /**
+     * Constructor to initialize a tree with a given set of files.
+     *
+     * @param files A map of file paths to blob hashes.
+     */
     public Tree(Map<String, String> files) {
         this.files = files;
     }
 
-    // Getters and Setters
+    /**
+     * Retrieves the files in the tree.
+     *
+     * @return A map of file paths to blob hashes.
+     */
     public Map<String, String> getFiles() {
         return files;
     }
 
+    /**
+     * Sets the files in the tree.
+     *
+     * @param files A map of file paths to blob hashes.
+     */
     public void setFiles(Map<String, String> files) {
         this.files = files;
     }
 
     /**
      * Computes the SHA-1 hash of the tree's serialized JSON representation.
+     * <p>
      * This serves as a unique identifier for the tree.
      *
      * @return The SHA-1 hash of the tree.
@@ -34,7 +59,11 @@ public class Tree {
         return HashUtils.sha1(toJson().getBytes());
     }
 
-    // Custom JSON Serialization
+    /**
+     * Serializes the tree to a JSON string.
+     *
+     * @return A JSON representation of the tree.
+     */
     public String toJson() {
         StringBuilder jsonBuilder = new StringBuilder();
         jsonBuilder.append("{");
@@ -53,16 +82,22 @@ public class Tree {
         return jsonBuilder.toString();
     }
 
-    // Custom JSON Deserialization
+    /**
+     * Deserializes a tree object from a JSON string.
+     *
+     * @param json A JSON string representing a tree.
+     * @return A Tree object.
+     */
     public static Tree fromJson(String json) {
         Tree tree = new Tree();
+
         // Remove outer curly braces
         json = json.trim();
         if (json.startsWith("{") && json.endsWith("}")) {
             json = json.substring(1, json.length() - 1);
         }
 
-        // Find the "files" object
+        // Extract the "files" object
         String filesJson = null;
         String[] fields = json.split(",(?=(?:[^\"]*\"[^\"]*\")*[^\"]*$)");
         for (String field : fields) {
@@ -80,7 +115,7 @@ public class Tree {
         }
 
         if (filesJson != null) {
-            Map<String, String> files = new java.util.HashMap<>();
+            Map<String, String> files = new HashMap<>();
             String[] fileEntries = filesJson.split(",(?=(?:[^\"]*\"[^\"]*\")*[^\"]*$)");
             for (String fileEntry : fileEntries) {
                 String[] kv = fileEntry.split(":(?=(?:[^\"]*\"[^\"]*\")*[^\"]*$)", 2);
@@ -95,7 +130,12 @@ public class Tree {
         return tree;
     }
 
-    // Helper method to escape special JSON characters
+    /**
+     * Escapes special characters in a string for JSON serialization.
+     *
+     * @param str The string to escape.
+     * @return The escaped string.
+     */
     private String escapeJson(String str) {
         if (str == null) return "";
         return str.replace("\\", "\\\\")
@@ -108,7 +148,12 @@ public class Tree {
                 .replace("\t", "\\t");
     }
 
-    // Helper method to unescape special JSON characters
+    /**
+     * Unescapes special characters in a string for JSON deserialization.
+     *
+     * @param str The string to unescape.
+     * @return The unescaped string.
+     */
     private static String unescapeJson(String str) {
         if (str == null) return null;
         return str.replace("\\\"", "\"")
